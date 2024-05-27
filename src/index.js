@@ -1,7 +1,6 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const express = require("express");
-const { makeExecutableSchema } = require("@graphql-tools/schema");
 
 // const Redis = require("ioredis");
 
@@ -13,14 +12,18 @@ const {
 
 // const redis = new Redis();
 
+// // Test the connection
+// redis.on("connect", () => {
+//   console.log("Connected to Redis");
+// });
+
+// redis.on("error", (err) => {
+//   console.error("Redis connection error:", err);
+// });
+
 const typeDefs = require("./graphql/typeDefs/userTypeDefs");
 const resolvers = require("./graphql/resolvers/userResolvers");
 require("./db/connection");
-
-const schema = makeExecutableSchema({
-  typeDefs,
-  resolvers,
-});
 
 const app = express();
 const cors = require("cors");
@@ -39,7 +42,8 @@ const getMe = async (req) => {
 };
 
 const server = new ApolloServer({
-  schema,
+  typeDefs,
+  resolvers,
   plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true })],
   context: async ({ req }) => {
     const me = await getMe(req);

@@ -1,15 +1,36 @@
-// const { combineResolvers } = require("graphql-resolvers");
 const User = require("../../models/userSchema");
 
-const getUsers = async () => {
+const getUser = async (_, { id }, { redis }) => {
   try {
+    const cachedUser = await redis.hgetall(`user:${args.id}`);
+    if (cachedUser) {
+      return JSON.parse(cachedUser);
+    }
+    const user = await User.findOne({ _id: id });
+    if (!user) return "User not found";
+    redis.hmset(`user:${user._id}`, user.toObject());
+    return user;
+  } catch (error) {
+    return new Error(error);
+  }
+};
+
+const allUsers = async (_, args, { redis }) => {
+  try {
+    const cachedUsers = await redis.hgetall("users");
+    if (cachedUsers) {
+      return Object.values(cachedUsers).map((user) => JSON.parse(user));
+    }
     const users = await User.find();
-    if (!users) return "User not found";
+    users.map((user) => {
+      redis.hmset(`user:${user._id}`, user.toObject());
+    });
     return users;
   } catch (error) {
     return new Error(error);
   }
 };
+
 const loginUser = async (_, { input }) => {
   const { email, password } = input;
   try {
@@ -25,7 +46,8 @@ const loginUser = async (_, { input }) => {
 };
 const userResolvers = {
   Query: {
-    getUsers,
+    getUser,
+    allUsers,
   },
 
   Mutation: {
